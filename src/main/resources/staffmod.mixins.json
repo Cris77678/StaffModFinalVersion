@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "package": "me.drex.staffmod.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "ChatMixin",
+    "CommandMixin",
+    "CreativeSecurityMixin",
+    "MovementMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
