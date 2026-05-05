@@ -24,7 +24,7 @@ public class DataStore {
     private static final Path STAFF_STATS_FILE = DATA_DIR.resolve("staff_stats.json");
     private static final Path TICKETS_FILE    = DATA_DIR.resolve("tickets.json");
     private static final Path TOGGLES_FILE    = DATA_DIR.resolve("toggles.json");
-
+    public static String discordWebhookUrl = ""; // Añade esto al inicio con tus variables
     private static final Map<UUID, PlayerData>   players       = new ConcurrentHashMap<>();
     private static final Map<String, JailZone>   jails         = new ConcurrentHashMap<>();
     private static final Map<UUID, StaffProfile> staffProfiles = new ConcurrentHashMap<>();
