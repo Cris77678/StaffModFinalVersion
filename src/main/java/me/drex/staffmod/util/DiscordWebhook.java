@@ -3,6 +3,7 @@ package me.drex.staffmod.util;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import me.drex.staffmod.StaffMod;
+import me.drex.staffmod.config.DataStore; // Importamos el DataStore
 import me.drex.staffmod.core.StaffModAsync;
 
 import java.io.OutputStream;
@@ -13,17 +14,12 @@ import java.nio.charset.StandardCharsets;
 
 public class DiscordWebhook {
 
-    private static String webhookUrl = "";
-
-    public static void setUrl(String url) {
-        webhookUrl = url != null ? url.trim() : "";
-    }
-
     public static void sendEmbed(String title, String description, int colorHex) {
-        // BUG #7 FIX: El placeholder en setUrl era "AQUI_TU_WEBHOOK_URL_COMPLETO"
-        // pero el check era contra "AQUI_TU_WEBHOOK_URL" (diferente) → no filtraba.
-        // Ahora usamos startsWith("AQUI_") para cubrir cualquier variante del placeholder.
-        if (webhookUrl.isBlank() || webhookUrl.startsWith("AQUI_")) {
+        // Obtenemos la URL directamente de nuestro DataStore
+        String webhookUrl = DataStore.discordWebhookUrl;
+
+        // Validamos la URL usando la misma lógica que tenías para evitar errores
+        if (webhookUrl == null || webhookUrl.isBlank() || webhookUrl.startsWith("AQUI_")) {
             StaffMod.LOGGER.warn("[StaffMod] Discord webhook no configurado. Omitiendo envío de: {}", title);
             return;
         }
@@ -60,7 +56,7 @@ public class DiscordWebhook {
                 if (code == 204 || (code >= 200 && code < 300)) {
                     StaffMod.LOGGER.debug("[StaffMod] Discord webhook enviado OK (HTTP {})", code);
                 } else if (code == 401 || code == 403) {
-                    StaffMod.LOGGER.error("[StaffMod] Discord webhook: URL inválida o sin permisos (HTTP {}). Verifica la URL en StaffMod.java.", code);
+                    StaffMod.LOGGER.error("[StaffMod] Discord webhook: URL inválida o sin permisos (HTTP {}). Verifica la configuración en toggles.json.", code);
                 } else if (code == 429) {
                     StaffMod.LOGGER.warn("[StaffMod] Discord webhook: Rate limit (HTTP 429). Demasiados mensajes.");
                 } else {
