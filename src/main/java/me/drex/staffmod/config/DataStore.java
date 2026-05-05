@@ -17,6 +17,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class DataStore {
 
+    public static String discordWebhookUrl = ""; // Variable para el Webhook
+
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Path DATA_DIR = FabricLoader.getInstance().getConfigDir().resolve("staffmod");
     private static final Path PLAYERS_FILE    = DATA_DIR.resolve("players.json");
@@ -24,7 +26,7 @@ public class DataStore {
     private static final Path STAFF_STATS_FILE = DATA_DIR.resolve("staff_stats.json");
     private static final Path TICKETS_FILE    = DATA_DIR.resolve("tickets.json");
     private static final Path TOGGLES_FILE    = DATA_DIR.resolve("toggles.json");
-    public static String discordWebhookUrl = ""; // Añade esto al inicio con tus variables
+
     private static final Map<UUID, PlayerData>   players       = new ConcurrentHashMap<>();
     private static final Map<String, JailZone>   jails         = new ConcurrentHashMap<>();
     private static final Map<UUID, StaffProfile> staffProfiles = new ConcurrentHashMap<>();
@@ -257,8 +259,6 @@ public class DataStore {
                     t.handledBy  = getS(obj, "handledBy");
                     t.createdAt  = getL(obj, "createdAt");
                     t.updatedAt  = getL(obj, "updatedAt");
-                    if (t.createdAt == -1) t.createdAt = System.currentTimeMillis();
-                    if (t.updatedAt == -1) t.updatedAt = t.createdAt;
                     
                     // Cargar respuestas
                     if (obj.has("replies")) {
@@ -283,6 +283,12 @@ public class DataStore {
         try (Reader r = Files.newBufferedReader(TOGGLES_FILE)) {
             JsonObject root = GSON.fromJson(r, JsonObject.class);
             if (root == null) return;
+            
+            // Cargar URL del Webhook
+            if (root.has("discordWebhook")) {
+                discordWebhookUrl = root.get("discordWebhook").getAsString();
+            }
+
             if (root.has("staffChat"))
                 for (JsonElement el : root.get("staffChat").getAsJsonArray())
                     staffChatToggle.add(UUID.fromString(el.getAsString()));
@@ -411,13 +417,19 @@ public class DataStore {
 
     private static void saveToggles() throws IOException {
         JsonObject root = new JsonObject();
+        
+        // Guardar URL del Webhook
+        root.addProperty("discordWebhook", discordWebhookUrl);
+
         JsonArray scArr = new JsonArray();
         for (UUID u : staffChatToggle) scArr.add(u.toString());
         root.add("staffChat", scArr);
+        
         // BUG #8 FIX: persistir el set de vanish para sobrevivir reinicios
         JsonArray vanishArr = new JsonArray();
         for (UUID u : VanishManager.getVanishedSet()) vanishArr.add(u.toString());
         root.add("vanished", vanishArr);
+        
         atomicWrite(TOGGLES_FILE, GSON.toJson(root));
     }
 
