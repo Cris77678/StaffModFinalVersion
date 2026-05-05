@@ -104,20 +104,17 @@ public class TicketGui extends SimpleGui {
                 btn.addLoreLine(Component.literal("§7Atendido por: §f" + (t.handledBy == null || t.handledBy.isEmpty() ? "?" : t.handledBy)));
                 btn.addLoreLine(Component.literal("§bClick izq: §fEscribir respuesta"));
                 btn.addLoreLine(Component.literal("§cClick der: §fCerrar ticket"));
+            } else if ("CERRADO".equals(t.status)) {
+                btn.addLoreLine(Component.literal("§cClick der: §fEliminar ticket"));
             }
+            
+            btn.addLoreLine(Component.literal("§eShift + Click: §fVer historial completo en chat"));
 
             final TicketEntry ticket = t;
             btn.setCallback((idx, type, action, gui) -> {
-                // BUG #4 FIX: Click izquierdo = solo ClickType.PICKUP con botón primario (button 0).
-                // QUICK_MOVE es Shift+Click, NO click derecho.
-                // Click derecho = ClickType.PICKUP con botón secundario (button 1).
-                // BUG #4 FIX: detectar click izq/der con ClickType correcto.
-                // En sgui 1.6.x, el 2do param (type) es ClickType de Minecraft.
-                // ClickType.PICKUP = click izquierdo
-                // ClickType.CLONE  = click derecho/central
-                // ClickType.QUICK_MOVE = Shift+Click (NO es click derecho)
                 boolean isLeftClick  = (action == ClickType.PICKUP);
                 boolean isRightClick = (action == ClickType.CLONE);
+                boolean isShiftClick = (action == ClickType.QUICK_MOVE);
 
                 if (isLeftClick) {
                     if ("ABIERTO".equals(ticket.status)) {
@@ -133,15 +130,38 @@ public class TicketGui extends SimpleGui {
                         promptReplyInChat(ticket);
                     }
                 } else if (isRightClick) {
-                    ticket.status = "CERRADO";
-                    DataStore.updateTicket(ticket);
-                    AuditLogManager.log(staff.getName().getString(), "TICKET_CLOSE",
-                        ticket.creatorName, "Ticket #" + ticket.id);
-                    staff.sendSystemMessage(Component.literal(
-                        "§7[ᴛɪᴄᴋᴇᴛs] Ticket §b#" + ticket.id + " §7cerrado."));
-                    build();
+                    if ("CERRADO".equals(ticket.status)) {
+                        DataStore.removeTicket(ticket.id);
+                        AuditLogManager.log(staff.getName().getString(), "TICKET_DELETE",
+                            ticket.creatorName, "Ticket #" + ticket.id);
+                        staff.sendSystemMessage(Component.literal(
+                            "§c[ᴛɪᴄᴋᴇᴛs] Ticket §b#" + ticket.id + " §celiminado permanentemente."));
+                        build();
+                    } else {
+                        ticket.status = "CERRADO";
+                        DataStore.updateTicket(ticket);
+                        AuditLogManager.log(staff.getName().getString(), "TICKET_CLOSE",
+                            ticket.creatorName, "Ticket #" + ticket.id);
+                        staff.sendSystemMessage(Component.literal(
+                            "§7[ᴛɪᴄᴋᴇᴛs] Ticket §b#" + ticket.id + " §7cerrado. (Click derecho de nuevo para borrar)"));
+                        build();
+                    }
+                } else if (isShiftClick) {
+                    staff.closeContainer();
+                    staff.sendSystemMessage(Component.literal("§8§m----------------------------------"));
+                    staff.sendSystemMessage(Component.literal("§eHistorial completo del Ticket §b#" + ticket.id));
+                    staff.sendSystemMessage(Component.literal("§7Mensaje original: §f" + ticket.message));
+                    staff.sendSystemMessage(Component.literal(" "));
+                    
+                    if (ticket.replies.isEmpty()) {
+                        staff.sendSystemMessage(Component.literal("§cNo hay respuestas en este ticket."));
+                    } else {
+                        for (String msg : ticket.replies) {
+                            staff.sendSystemMessage(Component.literal(msg));
+                        }
+                    }
+                    staff.sendSystemMessage(Component.literal("§8§m----------------------------------"));
                 }
-                // Shift+click (QUICK_MOVE) no hace nada — evita acciones accidentales
             });
 
             setSlot(slot, btn.build());
